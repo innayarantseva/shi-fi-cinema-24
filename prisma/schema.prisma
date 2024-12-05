@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Movie {
+  id            Int       @id
+  title         String
+  overview      String
+  posterPath    String
+  backdropPath  String
+  releaseDate   DateTime
+  popularity    Float
+  voteAverage   Float
+  voteCount     Int
+  genres        Genre[]   @relation("MovieToGenre")
+  actors        Actor[]   @relation("MovieToActor")
+  directors     Director[] @relation("MovieToDirector")
+}
+
+model Actor {
+  id      Int     @id
+  name    String
+  movies  Movie[] @relation("MovieToActor")
+}
+
+model Director {
+  id      Int     @id
+  name    String
+  movies  Movie[] @relation("MovieToDirector")
+}
+
+model Genre {
+  id      Int     @id
+  name    String
+  movies  Movie[] @relation("MovieToGenre")
+}
