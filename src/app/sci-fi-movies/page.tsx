@@ -1,63 +1,25 @@
-import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import type { Movie } from "@/types/movie";
+import { getSciFiMovies } from "@/services/movies";
+import { RootLayout } from "@/components/layout/root-layout";
 
-/**
- * Props interface for the SciFiMoviesPage component
- * @property searchParams - URL query parameters, including optional page number
- */
 interface Props {
   searchParams: { page?: string };
 }
 
-/**
- * Server Component that displays a paginated grid of science fiction movies
- * Fetches movies from the database with their genres and directors
- * Implements pagination and error handling
- */
 export default async function SciFiMoviesPage({ searchParams }: Props) {
-  // Parse page number from URL params, default to first page
   const currentPage = Number(searchParams.page) || 1;
   const moviesPerPage = 12;
 
   try {
-    // Parallel database queries for movies and total count
-    const [movies, totalMovies] = await Promise.all([
-      prisma.movie.findMany({
-        where: {
-          genres: {
-            some: {
-              id: 878, // TMDB ID for Science Fiction genre
-            },
-          },
-        },
-        include: {
-          genres: true,
-          directors: true,
-        },
-        orderBy: {
-          voteAverage: "desc", // Sort by highest rated first
-        },
-        skip: (currentPage - 1) * moviesPerPage,
-        take: moviesPerPage,
-      }),
-      // Count total sci-fi movies for pagination
-      prisma.movie.count({
-        where: {
-          genres: {
-            some: {
-              id: 878,
-            },
-          },
-        },
-      }),
-    ]);
-
-    const totalPages = Math.ceil(totalMovies / moviesPerPage);
+    const { movies, totalPages } = await getSciFiMovies({
+      page: currentPage,
+      moviesPerPage,
+    });
 
     return (
-      <div className="min-h-screen bg-blue-50">
+      <RootLayout>
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold mb-8 text-blue-900">
             Science Fiction Movies
@@ -128,19 +90,38 @@ export default async function SciFiMoviesPage({ searchParams }: Props) {
             )}
           </div>
         </div>
-      </div>
+      </RootLayout>
     );
   } catch {
-    // Display error state if database query fails
+    // Display a more informative error UI
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">
-            Error Loading Movies
-          </h1>
-          <p className="text-gray-600">Please try refreshing the page</p>
+      <RootLayout>
+        <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-red-600 mb-4">
+                Unable to Load Movies
+              </h1>
+              <p className="text-gray-600 mb-4">
+                We encountered an issue while fetching the movies. This could be
+                due to:
+              </p>
+              <ul className="text-gray-600 text-sm list-disc list-inside mb-6">
+                <li>Temporary database connection issues</li>
+                <li>Server maintenance</li>
+                <li>Network connectivity problems</li>
+              </ul>
+              <Button
+                variant="default"
+                onClick={() => window.location.reload()}
+                className="w-full"
+              >
+                Try Again
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
+      </RootLayout>
     );
   }
 }
